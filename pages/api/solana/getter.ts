@@ -34,14 +34,21 @@ export default async function getter(
       throw new Error('Error: cannot find the greeted account');
     }
 
+    // Data is stored into an account as a buffer
+    // to access the data, we'll have to unpack this blob of data into a well defined structure
+
     // Find the expected parameters.
-    const greeting = borsh.deserialize(undefined);
+    const greeting = borsh.deserialize(
+      GreetingSchema,
+      GreetingAccount,
+      accountInfo.data,
+    );
 
     // A little helper
     console.log(greeting);
 
     // Pass the counter to the client-side as JSON
-    res.status(200).json(undefined);
+    res.status(200).json(greeting.counter);
   } catch (error) {
     let errorMessage = error instanceof Error ? error.message : 'Unknown Error';
     console.log(errorMessage);

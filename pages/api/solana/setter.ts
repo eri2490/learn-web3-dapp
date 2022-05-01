@@ -14,6 +14,8 @@ export default async function setter(
   res: NextApiResponse<string>,
 ) {
   try {
+    // send data to the program, transaction
+    // one of the result is https://explorer.solana.com/tx/3noB6DWfDFTYgCNCjoMoHZN85bkg9uymiHdpeJoqtvaPeDkJU9NoKvzjmk9Xrr2finC4cBfPYpGwvSkj4MaYYcrP?cluster=devnet
     const {greeter, secret, programId, network} = req.body;
     const url = getNodeURL(network);
     const connection = new Connection(url, 'confirmed');
@@ -24,15 +26,29 @@ export default async function setter(
     const payerSecretKey = new Uint8Array(JSON.parse(secret));
     const payerKeypair = Keypair.fromSecretKey(payerSecretKey);
 
-    // this your turn to figure out
-    // how to create this instruction
-    const instruction = new TransactionInstruction(undefined);
+    // create a transaction instruction
+    const instruction = new TransactionInstruction({
+      keys: [
+        {
+          isSigner: false,
+          isWritable: true,
+          pubkey: greeterPublicKey,
+        },
+      ],
+      programId: programKey,
+      data: Buffer.alloc(0),
+    });
 
-    // this your turn to figure out
-    // how to create this transaction
-    const hash = await sendAndConfirmTransaction(undefined);
+    // send and confirm transaction
+    const hash = await sendAndConfirmTransaction(
+      connection,
+      new Transaction().add(instruction),
+      [payerKeypair],
+    );
 
-    res.status(200).json(undefined);
+    console.log(hash);
+
+    res.status(200).json(hash);
   } catch (error) {
     console.error(error);
     res.status(500).json('Get balance failed');

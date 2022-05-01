@@ -1,14 +1,23 @@
+// use is like as import as React
+// Borsh stands for Binary Object Representation Serialize hor Hashing
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
+    // a function to return the `AccountInfo`
     account_info::{next_account_info, AccountInfo},
+    // relates to entrypoint::ProgramResult
     entrypoint,
     entrypoint::ProgramResult,
+    // for low-impact logging on the blockchain
     msg,
+    // allows on-chain programs to implement program-specific error types
+    // and see them returned by the Solana runtime
     program_error::ProgramError,
     pubkey::Pubkey,
 };
 
-/// Define the type of state stored in accounts
+// use `derive` to generate all the necessary boilerplate code
+// to wrap `GreetingAccount` struct
+// Define the type of state stored in accounts
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct GreetingAccount {
     /// number of greetings
@@ -24,12 +33,16 @@ pub fn process_instruction(
     accounts: &[AccountInfo], // The account to say hello to
     _instruction_data: &[u8], // Ignored, all helloworld instructions are hellos
 ) -> ProgramResult {
+    // for debugging.
+    // use `msg!()`, rather than use `println!()`
     msg!("Hello World Rust program entrypoint");
 
     // Iterating accounts is safer than indexing
+    // `mut` means mutable
     let accounts_iter = &mut accounts.iter();
 
     // Get the account to say hello to
+    // `?` is a shortcut expression in Rust for error propagation
     let account = next_account_info(accounts_iter)?;
 
     // The account must be owned by the program in order to modify its data
@@ -39,8 +52,12 @@ pub fn process_instruction(
     }
 
     // Increment and store the number of times the account has been greeted
+    // `GreetingAccount` has only one field, `counter`.
+    // to modify it, we need to `borrow` the reference to `account.data` with the `&(borrow operator)`
+    // `try_from_slice()` from `BorshDeserialize` will mutably reference and deserialize the `account.data`
     let mut greeting_account = GreetingAccount::try_from_slice(&account.data.borrow())?;
     greeting_account.counter += 1;
+    // `serialize()` from `BorshSerialize`, the new `counter` value is sent back to Solana in the correct format.
     greeting_account.serialize(&mut &mut account.data.borrow_mut()[..])?;
 
     msg!("Greeted {} time(s)!", greeting_account.counter);

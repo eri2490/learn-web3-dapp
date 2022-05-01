@@ -35,6 +35,9 @@ type ResponseT = {
   hash: string;
   greeter: string;
 };
+
+// the result of the number of times it has been greeted
+// https://explorer.solana.com/tx/33JmyqgPh7JGUQ2uYN2J5CYXZ6HUPVfcV29hJBG2aMUZkVp6oXkALnNCzJ6T6w4CSEpLgCXtXZbE8cShwZS1nT8X?cluster=devnet
 export default async function greeter(
   req: NextApiRequest,
   res: NextApiResponse<string | ResponseT>,
@@ -45,11 +48,16 @@ export default async function greeter(
     const connection = new Connection(url, 'confirmed');
 
     const programId = new PublicKey(programAddress);
+    // payer is an account
     const payer = Keypair.fromSecretKey(new Uint8Array(JSON.parse(secret)));
     const GREETING_SEED = 'hello';
 
-    // Are there any methods from PublicKey to derive a public key from a seed?
-    const greetedPubkey = await PublicKey.undefined;
+    // create a publicKey from a seed
+    const greetedPubkey = await PublicKey.createWithSeed(
+      payer.publicKey,
+      GREETING_SEED,
+      programId,
+    );
 
     // This function calculates the fees we have to pay to keep the newly
     // created account alive on the blockchain. We're naming it lamports because
@@ -58,12 +66,23 @@ export default async function greeter(
       GREETING_SIZE,
     );
 
-    // Find which instructions are expected and complete SystemProgram with
-    // the required arguments.
-    const transaction = new Transaction().add(SystemProgram.undefined);
+    // create a account from a seed
+    const transaction = new Transaction().add(
+      SystemProgram.createAccountWithSeed({
+        basePubkey: payer.publicKey,
+        fromPubkey: payer.publicKey,
+        lamports,
+        newAccountPubkey: greetedPubkey,
+        programId,
+        seed: GREETING_SEED,
+        space: GREETING_SIZE,
+      }),
+    );
 
     // Complete this function call with the expected arguments.
-    const hash = await sendAndConfirmTransaction(undefined);
+    const hash = await sendAndConfirmTransaction(connection, transaction, [
+      payer,
+    ]);
     res.status(200).json({
       hash: hash,
       greeter: greetedPubkey.toBase58(),
